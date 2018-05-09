@@ -7,18 +7,25 @@ import asyncio, os, json, time,aiomysql
 
 # 打印sql文
 def log(sql, args=()):
+    '''
+    打印sql文
+    '''
     logging.info('SQL: %s' % sql)
 
 # 创建连接池
-# 我们需要创建一个全局的连接池，每个HTTP请求都可以从连接池中直接获取数据库连接。
-# 使用连接池的好处是不必频繁地打开和关闭数据库连接，而是能复用就尽量复用。
-# 连接池由全局变量__pool存储，缺省情况下将编码设置为utf8，自动提交事务
 @asyncio.coroutine
 def create_pool(loop, **kw):
+    '''
+    # 创建连接池\r\n
+    我们需要创建一个全局的连接池，每个HTTP请求都可以从连接池中直接获取数据库连接。\r\n
+    使用连接池的好处是不必频繁地打开和关闭数据库连接，而是能复用就尽量复用。\r\n
+    连接池由全局变量__pool存储，缺省情况下将编码设置为utf8，自动提交事务\r\n
+    '''
     logging.info('create database connection pool...')
+    host = '192.168.0.24'
     global __pool
     __pool = yield from aiomysql.create_pool(
-        host=kw.get('host', 'localhost'),
+        host=kw.get('host', host),
         port=kw.get('port', 3306),
         user=kw['user'],
         password=kw['password'],
@@ -31,9 +38,15 @@ def create_pool(loop, **kw):
     )
 
 # Select
-# 要执行SELECT语句，我们用select函数执行，需要传入SQL语句和SQL参数
 @asyncio.coroutine
 def select(sql, args, size=None):
+    '''
+    # Select\r\n
+    要执行SELECT语句，我们用select函数执行，需要传入SQL语句和SQL参数\r\n
+    SQL语句的占位符是?，而MySQL的占位符是%s，select()函数在内部自动替换。\r\n
+    注意到yield from将调用一个子协程（也就是在一个协程中调用另一个协程）并直接获得子协程的返回结果。\r\n
+    如果传入size参数，就通过fetchmany()获取最多指定数量的记录，否则，通过fetchall()获取所有记录。\r\n
+    '''
     log(sql, args)
     global __pool
     with (yield from __pool) as conn:
@@ -52,9 +65,14 @@ def select(sql, args, size=None):
 # 如果传入size参数，就通过fetchmany()获取最多指定数量的记录，否则，通过fetchall()获取所有记录。
 
 # Insert, Update, Delete
-# 要执行INSERT、UPDATE、DELETE语句，可以定义一个通用的execute()函数，因为这3种SQL的执行都需要相同的参数，以及返回一个整数表示影响的行数
 @asyncio.coroutine
 def execute(sql, args):
+    """
+    Insert, Update, Delete\r\n
+    要执行INSERT、UPDATE、DELETE语句，可以定义一个通用的execute()函数，
+    因为这3种SQL的执行都需要相同的参数，以及返回一个整数表示影响的行数\r\n
+    return int 影响的行数
+    """
     log(sql)
     with (yield from __pool) as conn:
         try:
@@ -75,7 +93,9 @@ def create_args_string(num):
 
 # 以及Field和各种Field子类
 class Field(object):
-    
+    """
+    Field和各种Field子类
+    """
     def __init__(self, name, column_type, primary_key, default):
         self.name = name
         self.column_type = column_type
@@ -86,7 +106,9 @@ class Field(object):
         return '<%s, %s:%s>' % (self.__class__.__name__, self.column_type, self.name)
 # 映射varchar的StringField
 class StringField(Field):
-    
+    """
+    映射varchar的StringField
+    """
     def __init__(self, name=None, primary_key=False, default=None, ddl='varchar(100)'):
         super().__init__(name, ddl, primary_key, default)
 
