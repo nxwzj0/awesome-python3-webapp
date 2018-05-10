@@ -22,10 +22,9 @@ def create_pool(loop, **kw):
     连接池由全局变量__pool存储，缺省情况下将编码设置为utf8，自动提交事务\r\n
     '''
     logging.info('create database connection pool...')
-    host = '192.168.0.24'
     global __pool
     __pool = yield from aiomysql.create_pool(
-        host=kw.get('host', host),
+        host=kw.get('host', 'localhost'),
         port=kw.get('port', 3306),
         user=kw['user'],
         password=kw['password'],
